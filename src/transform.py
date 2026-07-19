@@ -8,6 +8,11 @@ from pathlib import Path
 from difflib import SequenceMatcher
 import pandas as pd
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from google import genai
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Add current directory and src directory to sys.path to ensure correct imports
 sys.path.append(str(Path(__file__).parent.parent))
@@ -65,18 +70,71 @@ def extract_keywords(headline: str, limit: int = 5) -> list:
                 break
     return unique_words
 
-def analyze_sentiment(analyzer, text: str):
-    scores = analyzer.polarity_scores(text)
-    compound = scores['compound']
-    
-    if compound >= 0.05:
-        label = 'positive'
-    elif compound <= -0.05:
-        label = 'negative'
-    else:
-        label = 'neutral'
+import time
+
+def analyze_sentiment_batch(analyzer, articles, gemini_client=None):
+    if not gemini_client:
+        # Fallback to VADER for all articles
+        for art in articles:
+            scores = analyzer.polarity_scores(art['headline'])
+            compound = scores['compound']
+            art['sentiment_score'] = compound
+            art['sentiment_label'] = 'positive' if compound >= 0.05 else ('negative' if compound <= -0.05 else 'neutral')
+        return
         
-    return compound, label
+    print(f"Starting Gemini batch sentiment analysis on {len(articles)} articles...")
+    batch_size = 15
+    for i in range(0, len(articles), batch_size):
+        batch = articles[i:i+batch_size]
+        headlines_list = [{"id": idx, "headline": art['headline']} for idx, art in enumerate(batch)]
+        
+        try:
+            prompt = (
+                "You are a professional sentiment analysis model. "
+                "Analyze the sentiment of each of the following news headlines. "
+                "Output exactly a JSON list of objects in this format (no other text, just the raw JSON list):\n"
+                '[\n  {"id": 0, "score": 0.85, "label": "positive"},\n  {"id": 1, "score": -0.6, "label": "negative"}\n]\n\n'
+                f"Headlines to analyze:\n{json.dumps(headlines_list)}\n\n"
+                "Note: the score must be a number between -1.0 (most negative) and 1.0 (most positive). "
+                "The label must be 'positive' (score >= 0.05), 'negative' (score <= -0.05), or 'neutral' otherwise. "
+                "Match the 'id' of each object in the input exactly in the output."
+            )
+            response = gemini_client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=prompt
+            )
+            txt = response.text.strip()
+            
+            # Strip markdown code blocks if the model wrapped the JSON
+            if txt.startswith("```json"):
+                txt = txt.split("```json")[1].split("```")[0].strip()
+            elif txt.startswith("```"):
+                txt = txt.split("```")[1].split("```")[0].strip()
+                
+            results = json.loads(txt)
+            results_map = {res['id']: res for res in results if 'id' in res}
+            
+            for idx, art in enumerate(batch):
+                if idx in results_map:
+                    art['sentiment_score'] = float(results_map[idx].get('score', 0.0))
+                    art['sentiment_label'] = str(results_map[idx].get('label', 'neutral')).lower()
+                else:
+                    # fallback single VADER if missing from batch results
+                    scores = analyzer.polarity_scores(art['headline'])
+                    art['sentiment_score'] = scores['compound']
+                    art['sentiment_label'] = 'positive' if scores['compound'] >= 0.05 else ('negative' if scores['compound'] <= -0.05 else 'neutral')
+            print(f"Processed batch {i // batch_size + 1}/{(len(articles) - 1) // batch_size + 1} with Gemini.")
+        except Exception as e:
+            print(f"Gemini batch sentiment analysis failed: {e}. Falling back to VADER for this batch.")
+            for art in batch:
+                scores = analyzer.polarity_scores(art['headline'])
+                compound = scores['compound']
+                art['sentiment_score'] = compound
+                art['sentiment_label'] = 'positive' if compound >= 0.05 else ('negative' if compound <= -0.05 else 'neutral')
+                
+        # Sleep 4 seconds between batches to avoid any rate limit spikes
+        if i + batch_size < len(articles):
+            time.sleep(4.0)
 
 def main():
     parser = argparse.ArgumentParser(description="Transform and clean raw scraped news articles.")
@@ -120,14 +178,24 @@ def main():
     
     # 3. Sentiment Analysis and Keyword Extraction
     analyzer = SentimentIntensityAnalyzer()
+    
+    # Initialize Gemini client if key is configured
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    gemini_client = None
+    if gemini_key:
+        try:
+            gemini_client = genai.Client(api_key=gemini_key)
+            print("Gemini API Client initialized for sentiment analysis.")
+        except Exception as e:
+            print(f"Failed to configure Gemini API Client: {e}")
+            
     processed_records = []
     
+    # Batch run sentiment analysis (populates 'sentiment_score' and 'sentiment_label' in place)
+    analyze_sentiment_batch(analyzer, deduped_articles, gemini_client)
+    
+    processed_records = []
     for art in deduped_articles:
-        # sentiment
-        score, label = analyze_sentiment(analyzer, art['headline'])
-        art['sentiment_score'] = score
-        art['sentiment_label'] = label
-        
         # keywords
         art['keywords'] = extract_keywords(art['headline'])
         processed_records.append(art)
