@@ -130,6 +130,11 @@ body {
     box-shadow: 0 0 10px rgba(124, 58, 237, 0.3);
 }
 
+.select-wrapper select option {
+    background-color: #120e21;
+    color: #f3f1f7;
+}
+
 .select-wrapper::after {
     content: '▼';
     font-size: 0.7rem;
