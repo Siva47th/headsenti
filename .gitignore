@@ -1,0 +1,27 @@
+# Virtual Environment
+.venv/
+venv/
+env/
+ENV/
+
+# Secrets
+.env
+
+# Raw & Local Data
+data/
+
+# Cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Local logs
+*.log
+.system_generated/
+
+# OS files
+.DS_Store
+Thumbs.db

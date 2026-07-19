@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Sentiment & Trend Analytics</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- CSS Stylesheet -->
+    <link rel="stylesheet" href="/static/style.css">
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Controls -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <span class="logo-icon">⚡</span>
+                <h2 class="logo-text">SentimentEngine</h2>
+            </div>
+            <hr class="divider">
+            
+            <div class="control-group">
+                <label for="source-filter">Filter by Source</label>
+                <div class="select-wrapper">
+                    <select id="source-filter">
+                        <option value="All Sources">All Sources</option>
+                        <!-- Dynamic options will be appended here -->
+                    </select>
+                </div>
+            </div>
+            
+            <div class="info-box">
+                <h3>System Status</h3>
+                <div class="status-indicator">
+                    <span class="pulse green"></span>
+                    <span class="status-text">Pipeline Active</span>
+                </div>
+                <p class="db-info">Database: Postgres 16</p>
+                <p class="db-info">Port: 5433</p>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Sleek Gradient Header -->
+            <header class="dashboard-header">
+                <div class="header-text">
+                    <h1>News Sentiment & Trend Dashboard</h1>
+                    <p>Real-time updates, sentiment scores, and keyword analytics parsed from HTML & RSS feeds</p>
+                </div>
+            </header>
+
+            <!-- Metrics Summary Cards -->
+            <section class="metrics-grid">
+                <div class="metric-card glass">
+                    <span class="metric-label">Total Articles</span>
+                    <h2 id="total-articles-val" class="metric-val">0</h2>
+                </div>
+                <div class="metric-card glass">
+                    <span class="metric-label">Avg Sentiment</span>
+                    <h2 id="avg-sentiment-val" class="metric-val">0.00</h2>
+                </div>
+                <div class="metric-card glass">
+                    <span class="metric-label">Positive Articles</span>
+                    <h2 id="positive-pct-val" class="metric-val">0%</h2>
+                </div>
+                <div class="metric-card glass">
+                    <span class="metric-label">Negative Articles</span>
+                    <h2 id="negative-pct-val" class="metric-val">0%</h2>
+                </div>
+            </section>
+
+            <!-- Charts Section Grid -->
+            <section class="charts-grid">
+                <div class="chart-panel glass">
+                    <h3>📊 Average Sentiment by Source</h3>
+                    <div class="chart-container">
+                        <canvas id="source-sentiment-chart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-panel glass">
+                    <h3>🔑 Top Trending Keywords</h3>
+                    <div class="chart-container">
+                        <canvas id="top-keywords-chart"></canvas>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Long Chart Panel (Trends) -->
+            <section class="long-chart-section">
+                <div class="chart-panel glass">
+                    <h3>📈 Average Sentiment Trend Over Time</h3>
+                    <div class="chart-container-large">
+                        <canvas id="sentiment-trend-chart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Article Search and Table -->
+            <section class="table-section glass">
+                <div class="table-header">
+                    <h3>🔍 Explore Article Database</h3>
+                    <div class="search-box">
+                        <input type="text" id="article-search" placeholder="Search headlines...">
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="article-table">
+                        <thead>
+                            <tr>
+                                <th>Publish Date</th>
+                                <th>Source</th>
+                                <th>Headline</th>
+                                <th>Score</th>
+                                <th>Label</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="articles-table-body">
+                            <!-- Dynamic rows will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- Frontend JS Application -->
+    <script src="/static/app.js"></script>
+</body>
+</html>

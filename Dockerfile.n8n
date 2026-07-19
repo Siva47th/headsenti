@@ -1,0 +1,30 @@
+FROM n8nio/n8n:latest
+
+USER root
+
+# Install Python 3, pip, compilation tools, PostgreSQL dev files,
+# and pre-compiled Pandas, PyArrow, Numpy, and Chromium browser in Alpine
+RUN apk update && apk add --no-cache \
+    python3 \
+    py3-pip \
+    python3-dev \
+    build-base \
+    postgresql-dev \
+    chromium \
+    py3-pandas \
+    py3-pyarrow \
+    py3-numpy
+
+# Setup python virtual environment with access to system packages
+RUN python3 -m venv --system-site-packages /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install remaining python packages via pip
+# Skip binary browser download for Playwright in Alpine since we use system chromium
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+ENV PLAYWRIGHT_CHROME_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+USER node

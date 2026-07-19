@@ -1,0 +1,186 @@
+{
+  "name": "News Sentiment & Trend Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "2b9e69c6-836e-419b-ab0a-ef376f926cb8",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        380,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "command": ".\\.venv\\Scripts\\python.exe src/scraper.py"
+      },
+      "id": "cc074e0d-f06b-4e08-9dfc-27928ddc5421",
+      "name": "Run Scraper",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        580,
+        240
+      ],
+      "onError": "stopPipeline"
+    },
+    {
+      "parameters": {
+        "command": ".\\.venv\\Scripts\\python.exe src/transform.py"
+      },
+      "id": "e033e6ea-32c0-4384-9ff5-b9f8f4a3e2c3",
+      "name": "Run Transform",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        780,
+        240
+      ],
+      "onError": "stopPipeline"
+    },
+    {
+      "parameters": {
+        "command": ".\\.venv\\Scripts\\python.exe src/dq_checks.py"
+      },
+      "id": "ab7a28e7-ff4f-40e9-b590-0ab1dfc76e25",
+      "name": "Run DQ Checks",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        980,
+        240
+      ],
+      "onError": "stopPipeline"
+    },
+    {
+      "parameters": {
+        "command": ".\\.venv\\Scripts\\python.exe src/load.py"
+      },
+      "id": "e8d69f0b-4029-4d6d-97e3-0570a597a7a2",
+      "name": "Run Loader",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1180,
+        240
+      ],
+      "onError": "stopPipeline"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT s.source_name, AVG(f.sentiment_score) AS avg_sentiment, COUNT(*) AS count\nFROM fact_article f\nJOIN dim_source s ON f.source_id = s.source_id\nWHERE f.scraped_at >= NOW() - INTERVAL '24 hours'\nGROUP BY s.source_name\nORDER BY avg_sentiment DESC;"
+      },
+      "id": "c711202e-cbb6-464a-adce-a496f8a48ef8",
+      "name": "Get Sentiment Trend",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        1380,
+        240
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-db-creds"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Pipeline execution notification\nThis node can be wired to a Slack, Telegram, or Email node to notify you about the status of the pipeline and the daily sentiment trend report."
+      },
+      "id": "bfd80b7c-0e7d-411a-8c70-76fa4d0bcf3a",
+      "name": "Alert/Digest Node Placeholders",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1580,
+        240
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Run Scraper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Scraper": {
+      "main": [
+        [
+          {
+            "node": "Run Transform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Transform": {
+      "main": [
+        [
+          {
+            "node": "Run DQ Checks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run DQ Checks": {
+      "main": [
+        [
+          {
+            "node": "Run Loader",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Loader": {
+      "main": [
+        [
+          {
+            "node": "Get Sentiment Trend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Sentiment Trend": {
+      "main": [
+        [
+          {
+            "node": "Alert/Digest Node Placeholders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionTimeout": 3600
+  },
+  "active": false,
+  "pinData": {}
+}

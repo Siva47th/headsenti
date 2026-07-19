@@ -1,0 +1,15 @@
+sources:
+  - name: hacker_news
+    type: html
+    url: https://news.ycombinator.com
+    row_selector: tr.athing
+    headline_selector: span.titleline > a
+    link_selector: span.titleline > a
+    date_selector: + tr span.age
+    date_attribute: title
+  - name: bbc_news
+    type: rss
+    url: http://feeds.bbci.co.uk/news/rss.xml
+  - name: times_of_india
+    type: rss
+    url: https://timesofindia.indiatimes.com/rssfeedstopstories.cms
