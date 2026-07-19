@@ -13,3 +13,9 @@ sources:
   - name: times_of_india
     type: rss
     url: https://timesofindia.indiatimes.com/rssfeedstopstories.cms
+  - name: techcrunch
+    type: rss
+    url: https://techcrunch.com/feed/
+  - name: new_york_times
+    type: rss
+    url: https://rss.nytimes.com/services/xml/rss/nyt/World.xml
