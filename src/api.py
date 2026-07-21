@@ -1,3 +1,4 @@
+from datetime import timedelta
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -90,7 +91,11 @@ def get_metrics(source: str = None):
     neg = int(res['neg_count']) if res['neg_count'] is not None else 0
     
     last_scraped = res['last_scraped_at']
-    last_scraped_str = last_scraped.strftime('%Y-%m-%d %H:%M:%S UTC') if last_scraped else "N/A"
+    if last_scraped:
+        ist_scraped = last_scraped + timedelta(hours=5, minutes=30)
+        last_scraped_str = ist_scraped.strftime('%Y-%m-%d %H:%M:%S IST')
+    else:
+        last_scraped_str = "N/A"
 
     return {
         "total_articles": total,
@@ -183,7 +188,9 @@ def get_articles_list(source: str = None, search: str = None):
     if res is None:
         return []
     for item in res:
-        item['published_at'] = item['published_at'].strftime('%Y-%m-%d %H:%M')
+        if item.get('published_at'):
+            ist_pub = item['published_at'] + timedelta(hours=5, minutes=30)
+            item['published_at'] = ist_pub.strftime('%Y-%m-%d %H:%M IST')
         item['sentiment_score'] = float(item['sentiment_score']) if item['sentiment_score'] is not None else 0.0
     return res
 

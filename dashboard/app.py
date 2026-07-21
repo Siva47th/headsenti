@@ -95,7 +95,9 @@ def check_database_ready():
 # Retrieve last scraped timestamp
 last_scraped_df = run_query("SELECT MAX(scraped_at) as last_scraped FROM fact_article;")
 if last_scraped_df is not None and not last_scraped_df.empty and last_scraped_df['last_scraped'].iloc[0] is not None:
-    last_scraped_str = pd.to_datetime(last_scraped_df['last_scraped'].iloc[0]).strftime('%Y-%m-%d %H:%M:%S UTC')
+    utc_time = pd.to_datetime(last_scraped_df['last_scraped'].iloc[0])
+    ist_time = utc_time + pd.Timedelta(hours=5, minutes=30)
+    last_scraped_str = ist_time.strftime('%Y-%m-%d %H:%M:%S IST')
 else:
     last_scraped_str = "N/A"
 
@@ -155,7 +157,6 @@ if selected_source != "All Sources":
     metrics = run_query(query_summary, (selected_source,))
 else:
     metrics = run_query(query_summary)
-
 total_articles = int(metrics['total'].iloc[0]) if metrics is not None else 0
 avg_sentiment = float(metrics['avg_score'].iloc[0]) if metrics is not None and metrics['avg_score'].iloc[0] is not None else 0.0
 
@@ -294,8 +295,8 @@ else:
     articles_df = run_query(articles_query)
 
 if articles_df is not None and not articles_df.empty:
-    # Styling and formatting before displaying
-    articles_df['Publish Date'] = pd.to_datetime(articles_df['Publish Date']).dt.strftime('%Y-%m-%d %H:%M')
+    # Styling and formatting before displaying in IST
+    articles_df['Publish Date'] = (pd.to_datetime(articles_df['Publish Date']) + pd.Timedelta(hours=5, minutes=30)).dt.strftime('%Y-%m-%d %H:%M IST')
     
     # Set search input
     search_query = st.text_input("Search headlines...", "")
