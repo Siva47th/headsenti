@@ -93,7 +93,7 @@ def get_metrics(source: str = None):
     last_scraped = res['last_scraped_at']
     if last_scraped:
         ist_scraped = last_scraped + timedelta(hours=5, minutes=30)
-        last_scraped_str = ist_scraped.strftime('%Y-%m-%d %H:%M:%S IST')
+        last_scraped_str = ist_scraped.strftime('%Y-%m-%d %I:%M:%S %p IST')
     else:
         last_scraped_str = "N/A"
 
@@ -190,7 +190,7 @@ def get_articles_list(source: str = None, search: str = None):
     for item in res:
         if item.get('published_at'):
             ist_pub = item['published_at'] + timedelta(hours=5, minutes=30)
-            item['published_at'] = ist_pub.strftime('%Y-%m-%d %H:%M IST')
+            item['published_at'] = ist_pub.strftime('%Y-%m-%d %I:%M %p IST')
         item['sentiment_score'] = float(item['sentiment_score']) if item['sentiment_score'] is not None else 0.0
     return res
 

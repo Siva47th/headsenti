@@ -97,7 +97,7 @@ last_scraped_df = run_query("SELECT MAX(scraped_at) as last_scraped FROM fact_ar
 if last_scraped_df is not None and not last_scraped_df.empty and last_scraped_df['last_scraped'].iloc[0] is not None:
     utc_time = pd.to_datetime(last_scraped_df['last_scraped'].iloc[0])
     ist_time = utc_time + pd.Timedelta(hours=5, minutes=30)
-    last_scraped_str = ist_time.strftime('%Y-%m-%d %H:%M:%S IST')
+    last_scraped_str = ist_time.strftime('%Y-%m-%d %I:%M:%S %p IST')
 else:
     last_scraped_str = "N/A"
 
@@ -295,8 +295,8 @@ else:
     articles_df = run_query(articles_query)
 
 if articles_df is not None and not articles_df.empty:
-    # Styling and formatting before displaying in IST
-    articles_df['Publish Date'] = (pd.to_datetime(articles_df['Publish Date']) + pd.Timedelta(hours=5, minutes=30)).dt.strftime('%Y-%m-%d %H:%M IST')
+    # Styling and formatting before displaying in IST (12-hour AM/PM)
+    articles_df['Publish Date'] = (pd.to_datetime(articles_df['Publish Date']) + pd.Timedelta(hours=5, minutes=30)).dt.strftime('%Y-%m-%d %I:%M %p IST')
     
     # Set search input
     search_query = st.text_input("Search headlines...", "")
