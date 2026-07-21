@@ -44,6 +44,53 @@ def get_source_base_urls():
             print(f"Warning: Could not parse config for base URLs: {e}")
     return base_urls
 
+def prune_old_scraps(conn, keep_last_n=3):
+    """
+    Keep only articles from the last N distinct scrap runs per source in fact_article.
+    Delete older articles and orphaned keywords from dim_keyword.
+    """
+    print(f"Pruning database records: Keeping only the last {keep_last_n} scheduled scraps per source...")
+    with conn.cursor() as cur:
+        # Delete articles older than the last N distinct scraped_at batches per source_id
+        cur.execute("""
+            DELETE FROM fact_article
+            WHERE article_id IN (
+                SELECT article_id FROM (
+                    SELECT article_id,
+                           DENSE_RANK() OVER (PARTITION BY source_id ORDER BY scraped_at DESC) as rank
+                    FROM fact_article
+                ) ranked
+                WHERE rank > %s
+            );
+        """, (keep_last_n,))
+        deleted_articles = cur.rowcount
+        
+        # Clean up orphaned keywords in dim_keyword
+        cur.execute("""
+            DELETE FROM dim_keyword
+            WHERE keyword_id NOT IN (SELECT DISTINCT keyword_id FROM bridge_article_keyword);
+        """)
+        deleted_keywords = cur.rowcount
+        
+    conn.commit()
+    print(f"Storage maintenance complete: Deleted {deleted_articles} older articles and {deleted_keywords} orphaned keywords.")
+
+def prune_old_local_data(keep_last_n=3):
+    """
+    Clean up older date directories in data/raw and data/staging to keep local storage efficient.
+    """
+    for base_dir_name in ["data/raw", "data/staging"]:
+        base_path = Path(base_dir_name)
+        if not base_path.exists():
+            continue
+        dirs = [d for d in base_path.iterdir() if d.is_dir()]
+        dirs.sort(key=lambda d: d.name, reverse=True)
+        if len(dirs) > keep_last_n:
+            for old_dir in dirs[keep_last_n:]:
+                print(f"Cleaning up old local data directory: {old_dir}")
+                import shutil
+                shutil.rmtree(old_dir, ignore_errors=True)
+
 def main():
     parser = argparse.ArgumentParser(description="Load transformed data into PostgreSQL.")
     parser.add_argument('--date', type=str, help="Date folder to process (YYYY-MM-DD). Defaults to today.")
@@ -155,6 +202,10 @@ def main():
         conn.commit()
         print(f"Data loading complete. Loaded {inserted_count} new articles (total batch: {total_scraped}).")
         
+        # Prune older scraps to maintain 3 scheduled scraps per source
+        prune_old_scraps(conn, keep_last_n=3)
+        prune_old_local_data(keep_last_n=3)
+
         # Log success
         with conn.cursor() as cur:
             cur.execute("""

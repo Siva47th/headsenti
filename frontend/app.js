@@ -60,6 +60,12 @@ async function loadMetrics() {
         document.getElementById("positive-pct-val").textContent = `${data.pos_pct.toFixed(0)}%`;
         document.getElementById("negative-pct-val").textContent = `${data.neg_pct.toFixed(0)}%`;
         
+        const lastScraped = data.last_scraped_at || "N/A";
+        const sideEl = document.getElementById("last-scraped-sidebar");
+        const headEl = document.getElementById("last-scraped-header");
+        if (sideEl) sideEl.textContent = lastScraped;
+        if (headEl) headEl.textContent = lastScraped;
+
         // Color avg sentiment based on value
         const valEl = document.getElementById("avg-sentiment-val");
         if (data.avg_sentiment > 0.05) {

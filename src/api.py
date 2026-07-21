@@ -62,7 +62,8 @@ def get_metrics(source: str = None):
             AVG(sentiment_score) as avg_sentiment,
             SUM(CASE WHEN sentiment_label = 'positive' THEN 1 ELSE 0 END) as pos_count,
             SUM(CASE WHEN sentiment_label = 'negative' THEN 1 ELSE 0 END) as neg_count,
-            SUM(CASE WHEN sentiment_label = 'neutral' THEN 1 ELSE 0 END) as neu_count
+            SUM(CASE WHEN sentiment_label = 'neutral' THEN 1 ELSE 0 END) as neu_count,
+            MAX(scraped_at) as last_scraped_at
         FROM fact_article
     """
     
@@ -79,7 +80,8 @@ def get_metrics(source: str = None):
             "avg_sentiment": 0.0,
             "pos_pct": 0.0,
             "neg_pct": 0.0,
-            "neu_pct": 0.0
+            "neu_pct": 0.0,
+            "last_scraped_at": "N/A"
         }
         
     total = int(res['total_articles'])
@@ -87,12 +89,16 @@ def get_metrics(source: str = None):
     pos = int(res['pos_count']) if res['pos_count'] is not None else 0
     neg = int(res['neg_count']) if res['neg_count'] is not None else 0
     
+    last_scraped = res['last_scraped_at']
+    last_scraped_str = last_scraped.strftime('%Y-%m-%d %H:%M:%S UTC') if last_scraped else "N/A"
+
     return {
         "total_articles": total,
         "avg_sentiment": avg_s,
         "pos_pct": (pos / total) * 100 if total > 0 else 0.0,
         "neg_pct": (neg / total) * 100 if total > 0 else 0.0,
-        "neu_pct": ((total - pos - neg) / total) * 100 if total > 0 else 0.0
+        "neu_pct": ((total - pos - neg) / total) * 100 if total > 0 else 0.0,
+        "last_scraped_at": last_scraped_str
     }
 
 @app.get("/api/sources")

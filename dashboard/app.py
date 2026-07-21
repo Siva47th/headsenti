@@ -92,10 +92,18 @@ def check_database_ready():
     # Ensure fact_article is there
     return 'fact_article' in tables['table_name'].values
 
-st.markdown("""
+# Retrieve last scraped timestamp
+last_scraped_df = run_query("SELECT MAX(scraped_at) as last_scraped FROM fact_article;")
+if last_scraped_df is not None and not last_scraped_df.empty and last_scraped_df['last_scraped'].iloc[0] is not None:
+    last_scraped_str = pd.to_datetime(last_scraped_df['last_scraped'].iloc[0]).strftime('%Y-%m-%d %H:%M:%S UTC')
+else:
+    last_scraped_str = "N/A"
+
+st.markdown(f"""
 <div class="main-header">
     <h1>News Sentiment & Trend Analytics</h1>
     <p>Real-time updates, sentiment patterns, and keyword trends parsed across HTML & RSS feeds</p>
+    <p style="margin-top: 10px; font-weight: 600; opacity: 0.95;">🕒 Last Updated / Scraped: {last_scraped_str}</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -138,7 +146,7 @@ sources_list = ["All Sources"] + sources_df['source_name'].tolist() if sources_d
 
 selected_source = st.sidebar.selectbox("Filter by Source", sources_list)
 st.sidebar.markdown("### Active Configuration")
-st.sidebar.info("• Database: PostgreSQL\n• Scrapers: 2 Sources Active\n• Sentiment Model: VADER")
+st.sidebar.info(f"• Database: PostgreSQL\n• Scrapers: 2 Sources Active\n• Retention: Last 3 Scraps\n• Last Scraped: {last_scraped_str}")
 
 # 1. Fetch Metrics Summary
 query_summary = "SELECT COUNT(*) as total, AVG(sentiment_score) as avg_score FROM fact_article"

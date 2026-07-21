@@ -18,7 +18,9 @@ def get_hash(source: str, headline: str, date_str: str) -> str:
     combined = f"{source}:{headline}:{date_str}"
     return hashlib.sha256(combined.encode('utf-8')).hexdigest()
 
-def scrape_html_source(source_cfg):
+def scrape_html_source(source_cfg, scraped_at: str = None):
+    if not scraped_at:
+        scraped_at = datetime.utcnow().isoformat()
     articles = []
     source_name = source_cfg['name']
     url = source_cfg['url']
@@ -99,7 +101,7 @@ def scrape_html_source(source_cfg):
                     "summary": None,
                     "url": link,
                     "published_at": published_at.isoformat(),
-                    "scraped_at": datetime.utcnow().isoformat()
+                    "scraped_at": scraped_at
                 }
                 
                 art = Article(**article_data)
@@ -110,7 +112,9 @@ def scrape_html_source(source_cfg):
         browser.close()
     return articles
 
-def scrape_rss_source(source_cfg):
+def scrape_rss_source(source_cfg, scraped_at: str = None):
+    if not scraped_at:
+        scraped_at = datetime.utcnow().isoformat()
     articles = []
     source_name = source_cfg['name']
     url = source_cfg['url']
@@ -143,7 +147,7 @@ def scrape_rss_source(source_cfg):
                 "summary": summary,
                 "url": link,
                 "published_at": published_at.isoformat(),
-                "scraped_at": datetime.utcnow().isoformat()
+                "scraped_at": scraped_at
             }
             
             art = Article(**article_data)
@@ -163,6 +167,7 @@ def main():
         config = yaml.safe_load(f)
         
     sources = config.get('sources', [])
+    run_timestamp = datetime.utcnow().isoformat()
     today_str = datetime.utcnow().strftime('%Y-%m-%d')
     output_dir = Path("data/raw") / today_str
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -175,9 +180,9 @@ def main():
         stype = source_cfg.get('type')
         try:
             if stype == 'html':
-                articles = scrape_html_source(source_cfg)
+                articles = scrape_html_source(source_cfg, scraped_at=run_timestamp)
             elif stype == 'rss':
-                articles = scrape_rss_source(source_cfg)
+                articles = scrape_rss_source(source_cfg, scraped_at=run_timestamp)
             else:
                 print(f"Unknown source type: {stype} for {name}")
                 continue
